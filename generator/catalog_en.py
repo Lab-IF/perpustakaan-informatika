@@ -1,4 +1,5 @@
-# Katalog buku informatika berbahasa Inggris (judul, penulis, penerbit riil).
+# Katalog buku informatika berbahasa Inggris, disusun dari buku nyata tanpa verifikasi per entri
+# terhadap sumber bibliografi (penerbit/tahun sebagian entri bisa keliru; lihat README.md bagian 4).
 # Format sama dengan catalog_id.py: (genre_id, tahun_terbit, penerbit, judul, (penulis, ...))
 # Nama penulis/penerbit ditulis ASCII (tanpa diakritik) agar aman untuk VARCHAR2 byte semantics.
 

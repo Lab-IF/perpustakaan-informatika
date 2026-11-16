@@ -1,6 +1,8 @@
 -- ============================================================================
 -- PERPUSTAKAAN INFORMATIKA - CONTOH ANALISIS (fungsi Oracle SQL)
 -- Jalankan setelah perpustakaan_ddl_data.sql dimuat (berkas utama maupun versi-lengkap/).
+-- Status: belum pernah dijalankan pada Oracle Database; diuji pada PostgreSQL + orafce
+-- (lihat README.md bagian 6). Bila ada query yang gagal, catat kodenya, misalnya [J19].
 -- Tanggal acuan data: 2026-11-05 (ganti DATE '2026-11-05' dengan SYSDATE
 -- bila ingin relatif terhadap hari berjalan). Penjelasan tiap query ada di README.md.
 -- ============================================================================

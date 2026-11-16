@@ -213,8 +213,9 @@ ALTER TABLE peminjaman
 -- Format ringkas: INSERT tanpa daftar kolom (urutan kolom = urutan pada DDL,
 -- dicantumkan di awal tiap blok) dan literal tanggal ANSI DATE 'YYYY-MM-DD'.
 -- Baris dikelompokkan 100 per statement dengan INSERT ALL ... SELECT 1 FROM dual.
--- Catatan: ISBN dan NIK bersifat sintetis (ISBN-13 dengan check digit valid);
--- judul, penulis, penerbit, dan genre adalah data riil.
+-- Catatan: ISBN dan NIK bersifat sintetis (ISBN-13 dengan check digit valid).
+-- Judul, penulis, dan penerbit disusun dari buku informatika nyata, tanpa
+-- verifikasi per entri terhadap sumber bibliografi (lihat README.md bagian 4).
 
 -- ---------------------------------------------------------------- genre (10)
 -- kolom: id, nama

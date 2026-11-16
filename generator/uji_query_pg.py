@@ -19,6 +19,7 @@ import time
 from pathlib import Path
 
 from contoh_query import SECTIONS
+from rekap import sidik_query
 
 CONTAINER = "perpus-validate"
 PSQL = ["docker", "exec", "-i", CONTAINER, "psql", "-U", "postgres", "-d", "perpus", "-v", "ON_ERROR_STOP=1", "-q"]
@@ -207,6 +208,7 @@ def main():
                         for l in lines[:3]:
                             print("        " + l[:160])
     print(f"\nTotal {total} query: OK {ok}, FAIL {failed}, SKIP {skipped}")
+    print(f"Sidik query: {sidik_query()}  (catat di UJI_TERAKHIR pada rekap.py bersama tanggal dan statement={ok})")
     return 1 if failed else 0
 
 

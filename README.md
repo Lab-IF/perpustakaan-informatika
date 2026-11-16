@@ -1,6 +1,8 @@
 # Data Simulasi Perpustakaan Informatika (Oracle Database / APEX)
 
-Berkas utama: **`perpustakaan_ddl_data.sql`** (481 KB, 86 statement) berisi DDL dan data simulasi perpustakaan program studi Informatika untuk **Oracle Database** (APEX, SQL Developer, SQLcl, SQL*Plus): 501 judul buku informatika riil berbahasa Indonesia dan Inggris, 1.419 eksemplar, 101 anggota, dan 2.030 transaksi peminjaman (3 Jan 2024 s.d. 5 Nov 2026). Ukuran di bawah 500 KB agar dapat diunggah ke APEX SQL Workshop.
+Berkas utama: **`perpustakaan_ddl_data.sql`** (481 KB, 86 statement) berisi DDL dan data simulasi perpustakaan program studi Informatika untuk **Oracle Database** (APEX, SQL Developer, SQLcl, SQL*Plus): 501 judul buku informatika berbahasa Indonesia dan Inggris, 1.419 eksemplar, 101 anggota, dan 2.030 transaksi peminjaman (3 Jan 2024 s.d. 5 Nov 2026). Ukuran di bawah 500 KB agar dapat diunggah ke APEX SQL Workshop.
+
+> **Status:** katalog buku disusun dari buku nyata tetapi tidak diverifikasi per entri (bagian 4). Bentuk berkas saat ini dan contoh query belum pernah dijalankan pada Oracle Database (bagian 5.7 dan 6).
 
 Bagian 6 memuat **131 contoh query**: analisis operasional perpustakaan (keterlambatan dan denda, judul terpopuler, ketersediaan eksemplar, tren, pengingat jatuh tempo), dasar SELECT dan penyaringan, fungsi baris tunggal (karakter, angka, tanggal, konversi tipe data, umum/kondisional), fungsi baris jamak (grup), join, subquery, operator himpunan, dan fungsi analitik Oracle.
 
@@ -10,22 +12,22 @@ Bagian 6 memuat **131 contoh query**: analisis operasional perpustakaan (keterla
 
 | Berkas | Ukuran | Statement | Keterangan |
 |---|---:|---:|---|
-| `perpustakaan_ddl_data.sql` | 481 KB (481.130 byte) | 86 | **DDL + data** dalam satu berkas (yang diunggah ke APEX) |
+| `perpustakaan_ddl_data.sql` | 481 KB (481.228 byte) | 86 | **DDL + data** dalam satu berkas (yang diunggah ke APEX) |
 | `perpustakaan_ddl.sql` | 5 KB (4.706 byte) | 25 | DDL saja |
-| `perpustakaan_data.sql` | 477 KB (477.208 byte) | 61 | INSERT saja (jalankan setelah DDL) |
-| `contoh_analisis.sql` | 105 KB (105.166 byte) | 131 | Semua contoh query bagian 6, siap dijalankan di SQL Scripts |
+| `perpustakaan_data.sql` | 477 KB (477.306 byte) | 61 | INSERT saja (jalankan setelah DDL) |
+| `contoh_analisis.sql` | 105 KB (105.343 byte) | 131 | Semua contoh query bagian 6, siap dijalankan di SQL Scripts |
 | `cek_kuota.sql` |  |  | Diagnosa kuota ruang skema bila muncul ORA-01536 |
 | `versi-lengkap/perpustakaan_*.sql` |  |  | Opsional: versi lengkap (938 judul, 2.721 transaksi, ~0,9 MB) untuk SQL Developer/SQLcl; skema sama, terlalu besar untuk APEX |
-| `generator/` |  |  | Generator deterministik (`generate.py`), katalog judul riil, contoh query, pembuat README |
+| `generator/` |  |  | Generator deterministik (`generate.py`), katalog judul, contoh query, pembuat README, harness uji |
 
 ## 2. Cara memuat ke Oracle APEX
 
 1. SQL Workshop > SQL Scripts > **Upload**, pilih `perpustakaan_ddl_data.sql` (batas unggah SQL Scripts 500 KB).
-2. **Run** > Run Now. Hasil yang diharapkan: **86 statements processed, 0 errors**.
+2. **Run** > Run Now. Hasil yang diharapkan: **86 statements processed, 0 errors** (belum dikonfirmasi pada APEX; lihat 5.7).
 3. Verifikasi jumlah baris dengan query pada bagian 5.
 4. (Opsional) Unggah dan jalankan `contoh_analisis.sql`; pilih *View: Detail* untuk melihat hasil tiap query.
 
-Skrip **aman dijalankan berulang**: blok PL/SQL di awal menghapus 8 tabel perpustakaan (bila ada) dengan `DROP TABLE ... CASCADE CONSTRAINTS PURGE`; tabel lain di skema tidak disentuh. Data dimuat dengan `INSERT ALL ... SELECT 1 FROM dual` (100 baris per statement), urut sesuai dependensi FK (genre, penerbit, penulis, anggota, buku, buku_penulis, buku_koleksi, peminjaman), dan diakhiri `COMMIT`. Tanggal ditulis sebagai literal ANSI `DATE 'YYYY-MM-DD'` sehingga tidak bergantung pada `NLS_DATE_FORMAT`.
+Skrip dirancang agar dapat dijalankan berulang: blok PL/SQL di awal menghapus 8 tabel perpustakaan (bila ada) dengan `DROP TABLE ... CASCADE CONSTRAINTS PURGE`; tabel lain di skema tidak disentuh. Data dimuat dengan `INSERT ALL ... SELECT 1 FROM dual` (100 baris per statement), urut sesuai dependensi FK (genre, penerbit, penulis, anggota, buku, buku_penulis, buku_koleksi, peminjaman), dan diakhiri `COMMIT`. Tanggal ditulis sebagai literal ANSI `DATE 'YYYY-MM-DD'` sehingga tidak bergantung pada `NLS_DATE_FORMAT`.
 
 Untuk SQL Developer buka berkas lalu jalankan sebagai *script* (F5); untuk SQLcl/SQL*Plus gunakan `@perpustakaan_ddl_data.sql`.
 
@@ -95,10 +97,15 @@ sehingga setiap eksekusi menghasilkan berkas yang byte-identik. Tanggal acuan
 simulasi (hari "ini") adalah **5 Nov 2026**.
 
 **Katalog buku**
-- Judul, penulis, penerbit, tahun terbit, dan genre adalah **data riil** buku informatika
-  yang beredar. Katalog sumber (`catalog_id.py`, `catalog_en.py`) memuat 401 judul berbahasa
-  Indonesia dan 537 berbahasa Inggris; dataset ini memakai 248 + 253 judul di antaranya,
-  dipilih secara deterministik dan proporsional per genre agar seluruh berkas tetap di bawah 500 KB.
+- Judul, penulis, penerbit, dan tahun terbit disusun dari pengetahuan umum tentang buku
+  informatika yang beredar, bukan diekstrak dari basis data bibliografi, dan **tidak diverifikasi
+  satu per satu** terhadap katalog penerbit atau perpustakaan. Sebagian entri, terutama terbitan
+  Indonesia, dapat memuat penerbit atau tahun yang tidak tepat, dan beberapa judul mungkin tidak
+  persis sama dengan terbitan aslinya. Gunakan sebagai data latihan, bukan rujukan bibliografi.
+  Pengelompokan ke 10 genre adalah klasifikasi penyusun dataset.
+- Katalog sumber (`catalog_id.py`, `catalog_en.py`) memuat 401 judul berbahasa Indonesia dan
+  537 berbahasa Inggris; dataset ini memakai 248 + 253 judul di antaranya, dipilih secara
+  deterministik dan proporsional per genre agar seluruh berkas tetap di bawah 500 KB.
 - ISBN **sintetis** namun valid secara format: prefiks 978-602 / 978-979 untuk
   terbitan Indonesia, 978-0 / 978-1 untuk terbitan berbahasa Inggris, check digit dihitung benar.
 - NIK penulis dan anggota **sintetis** (16 digit berpola NIK), nomor HP anggota unik
@@ -130,8 +137,8 @@ simulasi (hari "ini") adalah **5 Nov 2026**.
 | Tabel | Baris | Keterangan |
 |---|---:|---|
 | genre | 10 | 10 bidang informatika |
-| penerbit | 78 | penerbit riil; semuanya dirujuk minimal satu judul |
-| penulis | 554 | penulis riil; NIK sintetis |
+| penerbit | 78 | nama penerbit dari katalog; semuanya dirujuk minimal satu judul |
+| penulis | 554 | nama penulis dari katalog; NIK sintetis |
 | anggota | 101 | nama fiktif; NIK dan HP sintetis, HP unik |
 | buku | 501 | 248 judul berbahasa Indonesia + 253 berbahasa Inggris; ISBN-13 sintetis |
 | buku_penulis | 755 | relasi banyak-ke-banyak buku-penulis |
@@ -297,7 +304,17 @@ Dihitung ulang dari data saat README dibuat; semua pelanggaran harus 0.
 | Eksemplar HILANG tanpa pinjaman aktif | 0 |
 | Eksemplar per judul (min - maks) | 2 - 6 |
 
-Validasi eksekusi: DDL berkas ini telah dijalankan pada Oracle APEX 26.2 (8 tabel, 39 constraint); DDL+data divalidasi utuh pada PostgreSQL dengan dialek disamakan (0 pelanggaran integritas); skema yang sama dengan data versi lengkap dieksekusi utuh (`WHENEVER SQLERROR EXIT`) pada Oracle Database 23ai Free dengan seluruh constraint ENABLED/VALIDATED.
+### 5.7 Status validasi
+
+Yang benar-benar pernah dijalankan, dan pada bentuk berkas yang mana:
+
+| Lingkungan | Yang dijalankan | Hasil |
+|---|---|---|
+| Oracle Database 23ai Free (7 Nov 2026) | Skema ini (`CREATE TABLE` dan `ALTER TABLE` yang sama) dengan data versi lengkap dalam **format awal**: satu `INSERT` per baris dengan daftar kolom dan `TO_DATE`, tanpa blok PL/SQL | Dimuat tanpa error (`WHENEVER SQLERROR EXIT`); 8 tabel, 39 constraint ENABLED/VALIDATED; pemeriksaan konsistensi 0 pelanggaran |
+| PostgreSQL 18 dan 16 (`VARCHAR2` diganti `VARCHAR`) | Pernyataan `CREATE TABLE`, `ALTER TABLE`, dan `INSERT` kedua versi dalam format saat ini; blok PL/SQL dibuang dan `INSERT ALL` berkas utama diubah menjadi `INSERT` tunggal | Dimuat tanpa error; jumlah baris sesuai ringkasan di kepala berkas; pemeriksaan konsistensi berkas utama 0 pelanggaran |
+| Oracle APEX 26.2 (7 Nov 2026) | Versi sebelumnya dari berkas utama (85 statement, belum memuat blok PL/SQL) | 24 statement berhasil, 61 gagal. Error yang terlihat: `ORA-00955` (tabel `anggota` sudah ada), `ORA-02260`, dan `ORA-01536` (kuota ruang skema). Belum ada pemuatan tanpa error yang dikonfirmasi |
+
+**Belum pernah dijalankan pada Oracle Database:** bentuk berkas saat ini, yaitu blok PL/SQL penghapus tabel di awal, `INSERT` tanpa daftar kolom dengan literal `DATE`, dan pengelompokan `INSERT ALL` 100 baris per statement; begitu pula seluruh contoh query di bagian 6. Semuanya ditulis sebagai sintaks Oracle baku, tetapi belum dibuktikan dengan eksekusi.
 
 ## 6. Contoh analisis
 
@@ -318,7 +335,13 @@ Validasi eksekusi: DDL berkas ini telah dijalankan pada Oracle APEX 26.2 (8 tabe
 | 6.11 | Operator himpunan (UNION, UNION ALL, INTERSECT, MINUS) | 5 | K1-K5 |
 | 6.12 | Lanjutan: fungsi analitik (window) | 9 | L1-L9 |
 
-Pemeriksaan kualitas: setiap query dijalankan terhadap data ini pada PostgreSQL + ekstensi orafce (emulasi fungsi Oracle) dengan hasil tidak kosong; sintaks khusus Oracle (`SYSDATE`, parameter NLS, `LISTAGG ... WITHIN GROUP`, `DECODE`, `MEDIAN`, fungsi grup bersarang) ditulis mengikuti dokumentasi Oracle Database SQL Language Reference.
+**Status pengujian:** contoh query ini **belum pernah dijalankan pada Oracle Database**. Pengujiannya memakai PostgreSQL 16 dengan ekstensi orafce (emulasi sebagian fungsi Oracle) terhadap data berkas utama, lewat `generator/uji_query_pg.py`:
+
+- 119 query dijalankan setelah diterjemahkan otomatis ke dialek PostgreSQL (misalnya `DECODE` menjadi `CASE`, `MEDIAN` menjadi `PERCENTILE_CONT`, parameter NLS dibuang), sehingga yang dieksekusi adalah terjemahannya, bukan teks Oracle aslinya;
+- 10 query bersintaks khusus Oracle (A14, B10, E8, F7, H9, I3, J2, J18, J19, J20) diuji lewat padanan PostgreSQL yang ditulis tangan; teks Oracle-nya sendiri tidak dieksekusi;
+- 2 query (E1, F3) tidak diuji sama sekali.
+
+Pada pengujian terakhir (8 Nov 2026) semua query yang dijalankan (138 statement) selesai tanpa error dan setiap `SELECT` mengembalikan baris. Pengujian ini menangkap salah nama kolom, join, dan logika, tetapi tidak membuktikan bahwa sintaksnya diterima Oracle. Bila ada query yang gagal di Oracle, catat kodenya (misalnya `[J19]`).
 
 ### 6.1 Analisis operasional perpustakaan
 
@@ -2849,7 +2872,7 @@ ORDER  BY pinjaman DESC;
 
 #### J16. Subquery bersarang tiga tingkat: semua judul yang pernah dipinjam anggota teraktif
 
-Subquery terdalam (baris tunggal, `ORDER BY ... FETCH FIRST 1 ROW ONLY`) menentukan anggota teraktif; tingkat tengah mengambil eksemplar yang pernah ia pinjam; tingkat luar memetakan eksemplar ke ISBN. Oracle mengizinkan `ORDER BY` di dalam subquery hanya bila diikuti klausa pembatas baris (`FETCH FIRST`); tanpa itu muncul ORA-00907.
+Subquery terdalam (baris tunggal, `ORDER BY ... FETCH FIRST 1 ROW ONLY`) menentukan anggota teraktif; tingkat tengah mengambil eksemplar yang pernah ia pinjam; tingkat luar memetakan eksemplar ke ISBN. Pada subquery di klausa `WHERE` atau daftar `SELECT`, Oracle hanya menerima `ORDER BY` bila diikuti klausa pembatas baris (`FETCH FIRST`); tanpa itu muncul ORA-00907. Inline view di `FROM` boleh memakai `ORDER BY` tanpa syarat itu (lihat A2).
 
 Fungsi: `COUNT`, `IN`, `FETCH FIRST`
 
@@ -3496,7 +3519,7 @@ Konstanta lain: `SEED = 20261106`, `TODAY` (tanggal acuan), `LOAN_START`, `ACQ_S
 
 ## 9. Catatan
 
-- Judul, penulis, dan penerbit adalah karya nyata; tahun terbit mengacu pada salah satu edisi yang beredar dan dapat berbeda dengan edisi lain.
+- Katalog buku disusun dari buku nyata tanpa verifikasi per entri (lihat bagian 4); tahun terbit mengacu pada salah satu edisi dan dapat berbeda dengan edisi lain.
 - ISBN, NIK, nomor HP, nama anggota, tanggal, dan seluruh transaksi bersifat sintetis. Kesamaan dengan orang atau peristiwa nyata adalah kebetulan.
 - Berkas SQL ASCII murni, akhir baris LF, tanpa karakter `&` (aman dari substitusi SQL*Plus) dan tanpa baris kosong di dalam statement.
 - Fungsi yang bergantung pada pengaturan sesi: `NEXT_DAY` (nama hari mengikuti `NLS_DATE_LANGUAGE`), `TO_CHAR(tanggal)` tanpa format (`NLS_DATE_FORMAT`), `TO_CHAR(angka, 'L...')` tanpa parameter NLS (`NLS_CURRENCY`). Contoh di README menyertakan parameter NLS eksplisit bila perlu.

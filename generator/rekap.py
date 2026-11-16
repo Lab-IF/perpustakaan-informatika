@@ -5,8 +5,10 @@ Dipanggil otomatis oleh generate.py ketika seluruh profil dibangkitkan
 (python3 generate.py tanpa argumen), sehingga angka di README selalu sama
 dengan isi berkas SQL.
 """
+import hashlib
 import re
 from collections import Counter
+from datetime import date
 
 BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
 HARI = [("Mon", "Senin"), ("Tue", "Selasa"), ("Wed", "Rabu"), ("Thu", "Kamis"),
@@ -198,10 +200,15 @@ sehingga setiap eksekusi menghasilkan berkas yang byte-identik. Tanggal acuan
 simulasi (hari "ini") adalah **{today}**.
 
 **Katalog buku**
-- Judul, penulis, penerbit, tahun terbit, dan genre adalah **data riil** buku informatika
-  yang beredar. Katalog sumber (`catalog_id.py`, `catalog_en.py`) memuat {kat_id} judul berbahasa
-  Indonesia dan {kat_en} berbahasa Inggris; dataset ini memakai {n_id} + {n_en} judul di antaranya,
-  dipilih secara deterministik dan proporsional per genre agar seluruh berkas tetap di bawah 500 KB.
+- Judul, penulis, penerbit, dan tahun terbit disusun dari pengetahuan umum tentang buku
+  informatika yang beredar, bukan diekstrak dari basis data bibliografi, dan **tidak diverifikasi
+  satu per satu** terhadap katalog penerbit atau perpustakaan. Sebagian entri, terutama terbitan
+  Indonesia, dapat memuat penerbit atau tahun yang tidak tepat, dan beberapa judul mungkin tidak
+  persis sama dengan terbitan aslinya. Gunakan sebagai data latihan, bukan rujukan bibliografi.
+  Pengelompokan ke 10 genre adalah klasifikasi penyusun dataset.
+- Katalog sumber (`catalog_id.py`, `catalog_en.py`) memuat {kat_id} judul berbahasa Indonesia dan
+  {kat_en} berbahasa Inggris; dataset ini memakai {n_id} + {n_en} judul di antaranya, dipilih secara
+  deterministik dan proporsional per genre agar seluruh berkas tetap di bawah 500 KB.
 - ISBN **sintetis** namun valid secara format: prefiks 978-602 / 978-979 untuk
   terbitan Indonesia, 978-0 / 978-1 untuk terbitan berbahasa Inggris, check digit dihitung benar.
 - NIK penulis dan anggota **sintetis** (16 digit berpola NIK), nomor HP anggota unik
@@ -269,6 +276,23 @@ TROUBLESHOOT = [
 # ----------------------------------------------------------------------------
 from contoh_query import SECTIONS, FUNGSI, POLA_KHUSUS  # noqa: E402
 
+# Catatan hasil terakhir uji_query_pg.py, diisi manual. Setelah menjalankan ulang harness, perbarui
+# tanggal, jumlah statement yang lolos, dan sidik (dicetak harness di akhir). README menandai catatan
+# ini usang bila teks query berubah sesudah pengujian.
+UJI_TERAKHIR = {"tanggal": date(2026, 11, 8), "statement": 138, "sidik": "d7b6c782404c"}
+
+
+def sidik_query():
+    """Sidik (12 heksadesimal pertama SHA-256) seluruh teks SQL contoh beserta padanan PostgreSQL-nya."""
+    h = hashlib.sha256()
+    for sec in SECTIONS:
+        for q in sec["queries"]:
+            h.update(q["sql"].encode("utf-8"))
+            h.update(b"\0")
+            h.update(str(q.get("pg", "")).encode("utf-8"))
+            h.update(b"\0")
+    return h.hexdigest()[:12]
+
 
 def _strip_strings(sql):
     """Buang isi string literal agar nama fungsi di dalam kutip tidak ikut terdeteksi."""
@@ -306,6 +330,8 @@ def write_contoh_sql(path, today):
     L = ["-- ============================================================================",
          "-- PERPUSTAKAAN INFORMATIKA - CONTOH ANALISIS (fungsi Oracle SQL)",
          "-- Jalankan setelah perpustakaan_ddl_data.sql dimuat (berkas utama maupun versi-lengkap/).",
+         "-- Status: belum pernah dijalankan pada Oracle Database; diuji pada PostgreSQL + orafce",
+         "-- (lihat README.md bagian 6). Bila ada query yang gagal, catat kodenya, misalnya [J19].",
          f"-- Tanggal acuan data: {today.isoformat()} (ganti DATE '{today.isoformat()}' dengan SYSDATE",
          "-- bila ingin relatif terhadap hari berjalan). Penjelasan tiap query ada di README.md.",
          "-- ============================================================================", ""]
@@ -338,9 +364,11 @@ def write(out_dir, result, today, seed):
     w("# Data Simulasi Perpustakaan Informatika (Oracle Database / APEX)\n")
     w(f"Berkas utama: **`{fname}`** ({n(round(sizes['perpustakaan_ddl_data.sql'] / 1000))} KB, {n(stmts['perpustakaan_ddl_data.sql'])} statement) "
       "berisi DDL dan data simulasi perpustakaan program studi Informatika untuk **Oracle Database** (APEX, SQL Developer, SQLcl, SQL*Plus): "
-      f"{n(S['tabel']['buku'])} judul buku informatika riil berbahasa Indonesia dan Inggris, {n(S['tabel']['buku_koleksi'])} eksemplar, "
+      f"{n(S['tabel']['buku'])} judul buku informatika berbahasa Indonesia dan Inggris, {n(S['tabel']['buku_koleksi'])} eksemplar, "
       f"{n(S['tabel']['anggota'])} anggota, dan {n(S['tabel']['peminjaman'])} transaksi peminjaman "
       f"({tgl(S['pinjam']['awal'])} s.d. {tgl(S['pinjam']['akhir'])}). Ukuran di bawah 500 KB agar dapat diunggah ke APEX SQL Workshop.\n")
+    w("> **Status:** katalog buku disusun dari buku nyata tetapi tidak diverifikasi per entri (bagian 4). Bentuk berkas saat ini dan "
+      "contoh query belum pernah dijalankan pada Oracle Database (bagian 5.7 dan 6).\n")
     w(f"Bagian 6 memuat **{n_query} contoh query**: analisis operasional perpustakaan (keterlambatan dan denda, judul terpopuler, "
       "ketersediaan eksemplar, tren, pengingat jatuh tempo), dasar SELECT dan penyaringan, fungsi baris tunggal (karakter, angka, tanggal, "
       "konversi tipe data, umum/kondisional), fungsi baris jamak (grup), join, subquery, operator himpunan, dan fungsi analitik Oracle.\n")
@@ -355,7 +383,7 @@ def write(out_dir, result, today, seed):
         (f"`{sub}contoh_analisis.sql`", kb(sizes["contoh_analisis.sql"]), n(n_query), "Semua contoh query bagian 6, siap dijalankan di SQL Scripts"),
         ("`cek_kuota.sql`", "", "", "Diagnosa kuota ruang skema bila muncul ORA-01536"),
         ("`versi-lengkap/perpustakaan_*.sql`", "", "", "Opsional: versi lengkap (938 judul, 2.721 transaksi, ~0,9 MB) untuk SQL Developer/SQLcl; skema sama, terlalu besar untuk APEX"),
-        ("`generator/`", "", "", "Generator deterministik (`generate.py`), katalog judul riil, contoh query, pembuat README"),
+        ("`generator/`", "", "", "Generator deterministik (`generate.py`), katalog judul, contoh query, pembuat README, harness uji"),
     ]
     w(table(["Berkas", "Ukuran", "Statement", "Keterangan"], rows, ["l", "r", "r", "l"]))
     w("")
@@ -363,10 +391,11 @@ def write(out_dir, result, today, seed):
     # ---- 2. cara memuat
     w("## 2. Cara memuat ke Oracle APEX\n")
     w(f"1. SQL Workshop > SQL Scripts > **Upload**, pilih `{fname}` (batas unggah SQL Scripts 500 KB).")
-    w(f"2. **Run** > Run Now. Hasil yang diharapkan: **{n(stmts['perpustakaan_ddl_data.sql'])} statements processed, 0 errors**.")
+    w(f"2. **Run** > Run Now. Hasil yang diharapkan: **{n(stmts['perpustakaan_ddl_data.sql'])} statements processed, 0 errors** "
+      "(belum dikonfirmasi pada APEX; lihat 5.7).")
     w("3. Verifikasi jumlah baris dengan query pada bagian 5.")
     w(f"4. (Opsional) Unggah dan jalankan `{sub}contoh_analisis.sql`; pilih *View: Detail* untuk melihat hasil tiap query.\n")
-    w("Skrip **aman dijalankan berulang**: blok PL/SQL di awal menghapus 8 tabel perpustakaan (bila ada) dengan "
+    w("Skrip dirancang agar dapat dijalankan berulang: blok PL/SQL di awal menghapus 8 tabel perpustakaan (bila ada) dengan "
       "`DROP TABLE ... CASCADE CONSTRAINTS PURGE`; tabel lain di skema tidak disentuh. Data dimuat dengan `INSERT ALL ... SELECT 1 FROM dual` "
       f"({prof['batch']} baris per statement), urut sesuai dependensi FK (genre, penerbit, penulis, anggota, buku, buku_penulis, buku_koleksi, peminjaman), "
       "dan diakhiri `COMMIT`. Tanggal ditulis sebagai literal ANSI `DATE 'YYYY-MM-DD'` sehingga tidak bergantung pada `NLS_DATE_FORMAT`.\n")
@@ -395,8 +424,8 @@ def write(out_dir, result, today, seed):
     w("### 5.1 Jumlah baris per tabel\n")
     w(table(["Tabel", "Baris", "Keterangan"], [
         ("genre", n(S["tabel"]["genre"]), "10 bidang informatika"),
-        ("penerbit", n(S["tabel"]["penerbit"]), "penerbit riil; semuanya dirujuk minimal satu judul"),
-        ("penulis", n(S["tabel"]["penulis"]), "penulis riil; NIK sintetis"),
+        ("penerbit", n(S["tabel"]["penerbit"]), "nama penerbit dari katalog; semuanya dirujuk minimal satu judul"),
+        ("penulis", n(S["tabel"]["penulis"]), "nama penulis dari katalog; NIK sintetis"),
         ("anggota", n(S["tabel"]["anggota"]), "nama fiktif; NIK dan HP sintetis, HP unik"),
         ("buku", n(S["tabel"]["buku"]), f"{n(S['bahasa'][0])} judul berbahasa Indonesia + {n(S['bahasa'][1])} berbahasa Inggris; ISBN-13 sintetis"),
         ("buku_penulis", n(S["tabel"]["buku_penulis"]), "relasi banyak-ke-banyak buku-penulis"),
@@ -469,9 +498,27 @@ def write(out_dir, result, today, seed):
     rows = [(k, n(v)) for k, v in S["cek"].items()]
     rows.append(("Eksemplar per judul (min - maks)", f"{min(S['eks_per_judul'])} - {max(S['eks_per_judul'])}"))
     w(table(["Pemeriksaan", "Hasil"], rows, ["l", "r"]))
-    w("\nValidasi eksekusi: DDL berkas ini telah dijalankan pada Oracle APEX 26.2 (8 tabel, 39 constraint); DDL+data divalidasi utuh pada PostgreSQL "
-      "dengan dialek disamakan (0 pelanggaran integritas); skema yang sama dengan data versi lengkap dieksekusi utuh (`WHENEVER SQLERROR EXIT`) "
-      "pada Oracle Database 23ai Free dengan seluruh constraint ENABLED/VALIDATED.\n")
+    w("")
+
+    w("### 5.7 Status validasi\n")
+    w("Yang benar-benar pernah dijalankan, dan pada bentuk berkas yang mana:\n")
+    w(table(["Lingkungan", "Yang dijalankan", "Hasil"], [
+        ("Oracle Database 23ai Free (7 Nov 2026)",
+         "Skema ini (`CREATE TABLE` dan `ALTER TABLE` yang sama) dengan data versi lengkap dalam **format awal**: satu `INSERT` per baris "
+         "dengan daftar kolom dan `TO_DATE`, tanpa blok PL/SQL",
+         "Dimuat tanpa error (`WHENEVER SQLERROR EXIT`); 8 tabel, 39 constraint ENABLED/VALIDATED; pemeriksaan konsistensi 0 pelanggaran"),
+        ("PostgreSQL 18 dan 16 (`VARCHAR2` diganti `VARCHAR`)",
+         "Pernyataan `CREATE TABLE`, `ALTER TABLE`, dan `INSERT` kedua versi dalam format saat ini; blok PL/SQL dibuang dan `INSERT ALL` "
+         "berkas utama diubah menjadi `INSERT` tunggal",
+         "Dimuat tanpa error; jumlah baris sesuai ringkasan di kepala berkas; pemeriksaan konsistensi berkas utama 0 pelanggaran"),
+        ("Oracle APEX 26.2 (7 Nov 2026)",
+         "Versi sebelumnya dari berkas utama (85 statement, belum memuat blok PL/SQL)",
+         "24 statement berhasil, 61 gagal. Error yang terlihat: `ORA-00955` (tabel `anggota` sudah ada), `ORA-02260`, dan `ORA-01536` "
+         "(kuota ruang skema). Belum ada pemuatan tanpa error yang dikonfirmasi"),
+    ]))
+    w("\n**Belum pernah dijalankan pada Oracle Database:** bentuk berkas saat ini, yaitu blok PL/SQL penghapus tabel di awal, `INSERT` tanpa "
+      f"daftar kolom dengan literal `DATE`, dan pengelompokan `INSERT ALL` {prof['batch']} baris per statement; begitu pula seluruh contoh query "
+      "di bagian 6. Semuanya ditulis sebagai sintaks Oracle baku, tetapi belum dibuktikan dengan eksekusi.\n")
 
     # ---- 6. contoh analisis
     w("## 6. Contoh analisis\n")
@@ -483,9 +530,22 @@ def write(out_dir, result, today, seed):
             [(f"6.{i}", sec["judul"], len(sec["queries"]), f"{sec['kode']}1-{sec['kode']}{len(sec['queries'])}")
              for i, sec in enumerate(SECTIONS, 1)], ["l", "l", "r", "l"]))
     w("")
-    w("Pemeriksaan kualitas: setiap query dijalankan terhadap data ini pada PostgreSQL + ekstensi orafce (emulasi fungsi Oracle) dengan hasil tidak kosong; "
-      "sintaks khusus Oracle (`SYSDATE`, parameter NLS, `LISTAGG ... WITHIN GROUP`, `DECODE`, `MEDIAN`, fungsi grup bersarang) ditulis mengikuti "
-      "dokumentasi Oracle Database SQL Language Reference.\n")
+    dilewati = [f"{sec['kode']}{i}" for sec in SECTIONS for i, q in enumerate(sec["queries"], 1) if q.get("pg") == "skip"]
+    padanan = [f"{sec['kode']}{i}" for sec in SECTIONS for i, q in enumerate(sec["queries"], 1) if q.get("pg") not in (None, "skip")]
+    w("**Status pengujian:** contoh query ini **belum pernah dijalankan pada Oracle Database**. Pengujiannya memakai PostgreSQL 16 dengan "
+      "ekstensi orafce (emulasi sebagian fungsi Oracle) terhadap data berkas utama, lewat `generator/uji_query_pg.py`:\n")
+    w(f"- {n_query - len(dilewati) - len(padanan)} query dijalankan setelah diterjemahkan otomatis ke dialek PostgreSQL (misalnya `DECODE` menjadi "
+      "`CASE`, `MEDIAN` menjadi `PERCENTILE_CONT`, parameter NLS dibuang), sehingga yang dieksekusi adalah terjemahannya, bukan teks Oracle aslinya;")
+    w(f"- {len(padanan)} query bersintaks khusus Oracle ({', '.join(padanan)}) diuji lewat padanan PostgreSQL yang ditulis tangan; "
+      "teks Oracle-nya sendiri tidak dieksekusi;")
+    w(f"- {len(dilewati)} query ({', '.join(dilewati)}) tidak diuji sama sekali.\n")
+    if sidik_query() == UJI_TERAKHIR["sidik"]:
+        w(f"Pada pengujian terakhir ({tgl(UJI_TERAKHIR['tanggal'])}) semua query yang dijalankan ({n(UJI_TERAKHIR['statement'])} statement) selesai "
+          "tanpa error dan setiap `SELECT` mengembalikan baris. Pengujian ini menangkap salah nama kolom, join, dan logika, tetapi tidak membuktikan "
+          "bahwa sintaksnya diterima Oracle. Bila ada query yang gagal di Oracle, catat kodenya (misalnya `[J19]`).\n")
+    else:
+        w(f"Teks query sudah berubah sejak pengujian terakhir ({tgl(UJI_TERAKHIR['tanggal'])}), sehingga hasil pengujian itu tidak berlaku untuk "
+          "daftar ini sampai `uji_query_pg.py` dijalankan ulang dan `UJI_TERAKHIR` di `rekap.py` diperbarui.\n")
 
     for si, sec in enumerate(SECTIONS, 1):
         w(f"### 6.{si} {sec['judul']}\n")
@@ -539,7 +599,8 @@ def write(out_dir, result, today, seed):
 
     # ---- 9. catatan
     w("## 9. Catatan\n")
-    w("- Judul, penulis, dan penerbit adalah karya nyata; tahun terbit mengacu pada salah satu edisi yang beredar dan dapat berbeda dengan edisi lain.")
+    w("- Katalog buku disusun dari buku nyata tanpa verifikasi per entri (lihat bagian 4); tahun terbit mengacu pada salah satu edisi "
+      "dan dapat berbeda dengan edisi lain.")
     w("- ISBN, NIK, nomor HP, nama anggota, tanggal, dan seluruh transaksi bersifat sintetis. Kesamaan dengan orang atau peristiwa nyata adalah kebetulan.")
     w("- Berkas SQL ASCII murni, akhir baris LF, tanpa karakter `&` (aman dari substitusi SQL*Plus) dan tanpa baris kosong di dalam statement.")
     w("- Fungsi yang bergantung pada pengaturan sesi: `NEXT_DAY` (nama hari mengikuti `NLS_DATE_LANGUAGE`), `TO_CHAR(tanggal)` tanpa format "

@@ -1,4 +1,5 @@
-# Katalog buku informatika berbahasa Indonesia (judul, penulis, penerbit riil).
+# Katalog buku informatika berbahasa Indonesia, disusun dari buku nyata tanpa verifikasi per entri
+# terhadap sumber bibliografi (penerbit/tahun sebagian entri bisa keliru; lihat README.md bagian 4).
 # Format: (genre_id, tahun_terbit, penerbit, judul, (penulis, ...))
 # genre_id: 1 Pemrograman, 2 Algoritma/Teori, 3 Basis Data, 4 Jaringan,
 #           5 SO/Arsitektur/Embedded, 6 RPL/DevOps, 7 AI/Data Science/Citra,

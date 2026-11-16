@@ -2199,7 +2199,7 @@ ORDER  BY pinjaman DESC;""",
             {
                 "judul": 'Subquery bersarang tiga tingkat: semua judul yang pernah dipinjam anggota teraktif',
                 "topik": ['Subquery baris jamak (IN, ANY, ALL)', 'Subquery baris tunggal'],
-                "ket": 'Subquery terdalam (baris tunggal, `ORDER BY ... FETCH FIRST 1 ROW ONLY`) menentukan anggota teraktif; tingkat tengah mengambil eksemplar yang pernah ia pinjam; tingkat luar memetakan eksemplar ke ISBN. Oracle mengizinkan `ORDER BY` di dalam subquery hanya bila diikuti klausa pembatas baris (`FETCH FIRST`); tanpa itu muncul ORA-00907.',
+                "ket": 'Subquery terdalam (baris tunggal, `ORDER BY ... FETCH FIRST 1 ROW ONLY`) menentukan anggota teraktif; tingkat tengah mengambil eksemplar yang pernah ia pinjam; tingkat luar memetakan eksemplar ke ISBN. Pada subquery di klausa `WHERE` atau daftar `SELECT`, Oracle hanya menerima `ORDER BY` bila diikuti klausa pembatas baris (`FETCH FIRST`); tanpa itu muncul ORA-00907. Inline view di `FROM` boleh memakai `ORDER BY` tanpa syarat itu (lihat A2).',
                 "sql": """SELECT g.nama AS genre, b.judul
 FROM   buku b
 JOIN   genre g ON g.id = b.genre_id

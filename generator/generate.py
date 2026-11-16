@@ -567,8 +567,9 @@ def render_data(data):
     w("-- dicantumkan di awal tiap blok) dan literal tanggal ANSI DATE 'YYYY-MM-DD'.")
     if batch:
         w(f"-- Baris dikelompokkan {batch} per statement dengan INSERT ALL ... SELECT 1 FROM dual.")
-    w("-- Catatan: ISBN dan NIK bersifat sintetis (ISBN-13 dengan check digit valid);")
-    w("-- judul, penulis, penerbit, dan genre adalah data riil.")
+    w("-- Catatan: ISBN dan NIK bersifat sintetis (ISBN-13 dengan check digit valid).")
+    w("-- Judul, penulis, dan penerbit disusun dari buku informatika nyata, tanpa")
+    w("-- verifikasi per entri terhadap sumber bibliografi (lihat README.md bagian 4).")
 
     emit("genre", len(data["genres"]), "id, nama",
          [(str(gid), q(nama)) for gid, nama in data["genres"]])
